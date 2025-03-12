@@ -12,6 +12,24 @@ class Encoder:
         self._RANGES_KANJI= {(0x8140, 0x9FFC):0x8140, (0xE040, 0xEBBF):0xC140}
         self._KANJI_MULTIPLIER = 0xC0
 
+    def numeric_encode(self,s:str) -> str:
+        s = s.split(" ")
+        output = ""
+        for i in s:
+            i = int(i)
+            if len(str(i)) == 1:
+                i = format(i,"04b")
+                output+=" " + i
+            elif len(str(i)) == 2:
+                i = format(i,"06b")
+                output+=" " + i
+            else:
+                i = format(i,"010b")
+                output+=" " + i
+
+        return output.strip()
+
+
     def alphanumeric_encode(self,s:str) -> str:
         l = []
         s = s.replace(" ","")
@@ -66,7 +84,4 @@ class Encoder:
 
         return output 
 
-
 encoder = Encoder()
-
-print(encoder.alphanumeric_encode("HELLO WOORLD"))

@@ -6,6 +6,14 @@ def encoder() -> Encoder:
     encoder = Encoder()
     return encoder
 
+def test_numeric_encoder_returns_binary(encoder:Encoder) -> None:
+    string = "867 530 9"
+    assert all(i in '01' for i in encoder.numeric_encode(string).replace(" ",""))
+
+def test_numeric_encoder_output_is_correct(encoder:Encoder) -> None:
+    string = "867 530 9"
+    assert encoder.numeric_encode(string) == "1101100011 1000010010 1001"
+
 def test_alphanumeric_encoder_returns_binary(encoder:Encoder) -> None:
     string = "HELLO WORLD"
     assert all(i in '01' for i in encoder.alphanumeric_encode(string).replace(" ", ""))
