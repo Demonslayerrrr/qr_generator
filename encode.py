@@ -1,9 +1,21 @@
-unicode_string = "茗"
-unicode_string2 = "荷"
-shift_jis_encoded = unicode_string.encode('shift_jis').hex()
-shift_jis_encoded2 = unicode_string2.encode('shift_jis').hex()
+unicode_string = "茗荷"
 
-print(shift_jis_encoded, shift_jis_encoded2)
+class Encoder:
+    def __init__(self):
+        self._RANGES_KANJI= {(0x8140, 0x9FFC):0x8140, (0xE040, 0xEBBF):0xC140}
+    def kanji_encode(self,s:str) -> bytes:
+        s = s.encode("shift_jis").hex()
+        l = []
+        for i in range(0,len(s),4):
+            l.append(s[i:i+4])
+        return
 
+        # for k,v in RANGES_KANJI.items():
+        #     if int(a,16)>k[0] and int(a,16)<k[1]:
+        #         result = int(a,16)- v
 
-print(f"0x{(0x89D7 - 0x8140):04X}")
+        # print(hex(result))
+
+encoder = Encoder()
+
+print(encoder.kanji_encode(unicode_string))
