@@ -55,6 +55,14 @@ class Encoder:
             output+=" "+ binary
 
         return output.strip()
+    
+    def bytes_encode(self,s:str) -> str:
+        hex_values = [format(int(format(ord(i),'02x'),16),"08b") for i in s]
+
+        output = ""
+        for value in hex_values:
+            output +=" " + value
+        return output.strip()
 
     def kanji_encode(self,s:str) -> str:
         s = s.encode("shift_jis").hex()
@@ -83,5 +91,8 @@ class Encoder:
             output += result_binary
 
         return output 
+    
 
 encoder = Encoder()
+
+print(encoder.bytes_encode("Hello, world!"))
