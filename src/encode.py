@@ -103,4 +103,3 @@ class Encoder:
             output += result_binary
 
         return character_count,output,"kanji"
-    

@@ -1,24 +1,27 @@
-from encode import Encoder
-
 class BitStreamSender:
     def __init__(self):
-        self.indicators: dict = {"numeric":"0001",
-                            "alphanumeric":"0010",
-                            "byte": "0100",
-                            "kanji": "1000"}
-        self.character_count_indicator_table: dict[range:dict] = {range(1,9):{"numeric":10,"alphanumeric":9,"byte":8,"kanji":8},
-                                                             range(10-26):{"numeric":12,"alphanumeric":11,"byte":16,"kanji":10},
-                                                             range(27-40):{"numeric":14,"alphanumeric":13,"byte":16,"kanji":12}}
-
+        self.indicators: dict = {
+            "numeric": "0001",
+            "alphanumeric": "0010",
+            "byte": "0100",
+            "kanji": "1000"
+        }
+        self.character_count_indicator_table: dict = {
+            range(1, 9): {"numeric": 10, "alphanumeric": 9, "byte": 8, "kanji": 8},
+            range(10, 27): {"numeric": 12, "alphanumeric": 11, "byte": 16, "kanji": 10},
+            range(27, 41): {"numeric": 14, "alphanumeric": 13, "byte": 16, "kanji": 12}
+        }
         self.terminator = "0000"
     
-    def send_bit_stream(self, mode:str, character_count:int, encoded:str):
-        return self.indicators[mode]+ " " + format(character_count,"09b") + " " + encoded + " " + self.terminator
-    
+    def send_bit_stream(self, mode: str, character_count: int, encoded: str):
+        bytes_number_for_character_count = None
+        for k, v in self.character_count_indicator_table.items():
+            if k.start <= character_count <= k.stop:  
+                bytes_number_for_character_count = v.get(mode)
 
-a = BitStreamSender()
-b = Encoder()
 
-result = b.bytes_encode("HEllo world!")
-
-print(a.send_bit_stream(result[2], result[0], result[1]))
+        if bytes_number_for_character_count is None:
+            raise ValueError()
+        
+        
+        return self.indicators[mode] + " " + format(character_count, f"0{bytes_number_for_character_count}b") + " " + encoded + " " + self.terminator
