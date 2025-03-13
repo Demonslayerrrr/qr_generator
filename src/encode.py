@@ -13,7 +13,11 @@ class Encoder:
         self._KANJI_MULTIPLIER = 0xC0
 
     def numeric_encode(self,s:str) -> str:
+        
+        a = s.replace(" ", "")
+        character_count = len(a)
         s = s.split(" ")
+
         output = ""
         for i in s:
             i = int(i)
@@ -27,12 +31,14 @@ class Encoder:
                 i = format(i,"010b")
                 output+=" " + i
 
-        return output.strip()
+        return character_count,output.strip(), "numeric"
 
 
     def alphanumeric_encode(self,s:str) -> str:
         l = []
         s = s.replace(" ","")
+        
+        character_count = len(s)
         for i in range(0,len(s),2):
             l.append(s[i:i+2])
 
@@ -54,24 +60,30 @@ class Encoder:
         for binary in results:
             output+=" "+ binary
 
-        return output.strip()
+        return character_count,output.strip(), "alphanumeric"
     
     def bytes_encode(self,s:str) -> str:
-        hex_values = [format(int(format(ord(i),'02x'),16),"08b") for i in s]
+        hex_values = [format(int(format(ord(i),'02x'),16),"08b") for i in s.replace(" ", "")]
+        characters_count = len(hex_values)
 
         output = ""
         for value in hex_values:
             output +=" " + value
-        return output.strip()
+        return characters_count,output.strip(), "byte"
 
     def kanji_encode(self,s:str) -> str:
-        s = s.encode("shift_jis").hex()
-        l_with_input_hex = []
-        for i in range(0,len(s),4):
-            l_with_input_hex.append(s[i:i+4])
+        s = [i.encode("shift_jis").hex() for i in s.split(" ")]
 
         result = []
-        for string in l_with_input_hex:
+
+        for index, element in enumerate(s):
+            if len(element)>4:
+                temp_el = s.pop(index)
+                for i in range(0, len(element), 4):
+                    s.insert(index+i, temp_el[i:i+4])
+
+        character_count = len(s)
+        for string in s:
             for k,v in self._RANGES_KANJI.items():
                 if int(string,16)>k[0] and int(string,16)<k[1]:
                     result.append(int(string,16)- v)
@@ -90,9 +102,5 @@ class Encoder:
             result_binary = format(result_int,'013b')
             output += result_binary
 
-        return output 
+        return character_count,output,"kanji"
     
-
-encoder = Encoder()
-
-print(encoder.bytes_encode("Hello, world!"))
