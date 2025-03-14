@@ -1,5 +1,5 @@
 class BitStreamSender:
-    def __init__(self):
+    def __init__(self) -> None:
         self.indicators: dict = {
             "numeric": "0001",
             "alphanumeric": "0010",
@@ -13,11 +13,11 @@ class BitStreamSender:
         }
         self.terminator = "0000"
     
-    def send_bit_stream(self, mode: str, character_count: int, encoded: str):
+    def send_bit_stream(self, mode: str, character_count: int, encoded: str) -> str:
         bytes_number_for_character_count = None
         for k, v in self.character_count_indicator_table.items():
-            if k.start <= character_count <= k.stop:  
-                bytes_number_for_character_count = v.get(mode)
+            if character_count in k:  
+                bytes_number_for_character_count = v[mode]
 
 
         if bytes_number_for_character_count is None:

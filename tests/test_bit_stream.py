@@ -20,7 +20,7 @@ def test_bytes_output_stream_is_correct(bit_stream: BitStreamSender, encoder: En
 def test_bytes_invalid_character_count(bit_stream: BitStreamSender, encoder: Encoder) -> None:# for coverage purposes
     r = encoder.bytes_encode("Hello world!")
     with raises(ValueError):
-        bit_stream.send_bit_stream(r[2],-1,r[1])
+        bit_stream.send_bit_stream()
 
 def test_alphanumeric_output_is_correct(bit_stream: BitStreamSender, encoder: Encoder) -> None:
     expected_output = "0010 00000001010 01100001011 01111000110 10001011000 10001010011 01110111110 0000"
