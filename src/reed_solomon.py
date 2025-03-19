@@ -50,17 +50,5 @@ class ReedSolomon:
                     message[i + j] ^= self.gf_multiply(generator[j], coef)
         return message[-ec_length:]  
 
-# bit_stream = "00100000000101001100001011011110001101000101100010001010011011101111100000000000"
-# data_bytes = [bit_stream[i:i+8] for i in range(0, len(bit_stream), 8)]
-# data_values = [int(byte, 2) for byte in data_bytes]
 
-# rs = ReedSolomon()
-# ec_length = 10  
-# error_correction_bytes = rs.rs_encode(data_values, ec_length)
-
-# ec_bits = ['{:08b}'.format(byte) for byte in error_correction_bytes]
-# final_message = data_bytes + ec_bits 
-
-# print("Data Bytes:", data_bytes)
-# print("Error Correction Bytes:", ec_bits)
-# print("Final Message (Binary Groups):", final_message)
+{1: [['00100000', '00010100', '11000010', '11011110', '00110100', '01011001', '00010100', '11011101', '11100000', '01111011', '01011101', '01101010', '00110111', '10011010', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '11100011', '01110101', '01101111', '01011011', '11000010', '10100011', '11000100', '10000010', '01000110', '01001110']]}

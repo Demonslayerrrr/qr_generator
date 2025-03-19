@@ -12,7 +12,7 @@ class Encoder:
         self._RANGES_KANJI= {(0x8140, 0x9FFC):0x8140, (0xE040, 0xEBBF):0xC140}
         self._KANJI_MULTIPLIER = 0xC0
 
-    def numeric_encode(self,s:str) -> str:
+    def numeric(self,s:str) -> str:
         
         a = s.replace(" ", "")
         character_count = len(a)
@@ -34,7 +34,7 @@ class Encoder:
         return character_count,output.strip(), "numeric"
 
 
-    def alphanumeric_encode(self,s:str) -> str:
+    def alphanumeric(self,s:str) -> str:
         l = []
         s = s.replace(" ","")
         
@@ -62,7 +62,7 @@ class Encoder:
 
         return character_count,output.strip(), "alphanumeric"
     
-    def bytes_encode(self,s:str) -> str:
+    def bytes(self,s:str) -> str:
         hex_values = [format(int(format(ord(i),'02x'),16),"08b") for i in s.replace(" ", "")]
         characters_count = len(hex_values)
 
@@ -71,7 +71,7 @@ class Encoder:
             output +=" " + value
         return characters_count,output.strip(), "byte"
 
-    def kanji_encode(self,s:str) -> str:
+    def kanji(self,s:str) -> str:
         s = [i.encode("shift_jis").hex() for i in s.split(" ")]
 
         result = []
