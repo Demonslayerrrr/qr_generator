@@ -3,16 +3,44 @@ import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
 @dataclass
-class FinderPattern:
+class FinderPatternTopLeft:
     matrix = np.array([
-        1,1,1,1,1,1,1,
-        1,0,0,0,0,0,1,
-        1,0,1,1,1,0,1,
-        1,0,1,1,1,0,1,
-        1,0,1,1,1,0,1,
-        1,0,0,0,0,0,1,
-        1,1,1,1,1,1,1
-    ]).reshape(7, 7)
+        1,1,1,1,1,1,1,0,
+        1,0,0,0,0,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,0,0,0,0,1,0,
+        1,1,1,1,1,1,1,0,
+        0,0,0,0,0,0,0,0
+    ]).reshape(8, 8)
+
+@dataclass
+class FinderPatternTopRight:
+    matrix = np.array([
+        0,1,1,1,1,1,1,1,
+        0,1,0,0,0,0,0,1,
+        0,1,0,1,1,1,0,1,
+        0,1,0,1,1,1,0,1,
+        0,1,0,1,1,1,0,1,
+        0,1,0,0,0,0,0,1,
+        0,1,1,1,1,1,1,1,
+        0,0,0,0,0,0,0,0
+    ]).reshape(8, 8)
+
+@dataclass
+class FinderPatternBottomLeft:
+    matrix = np.array([
+        0,0,0,0,0,0,0,0,
+        1,1,1,1,1,1,1,0,
+        1,0,0,0,0,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,0,0,0,0,1,0,
+        1,1,1,1,1,1,1,0,
+    ]).reshape(8, 8)
+
 
 @dataclass
 class AlignmentPattern:
@@ -29,21 +57,26 @@ class QRCodeEncoder:
         self.version = version
         self.size = 4 * version + 17
         self.matrix = np.full((self.size, self.size), None) 
+        self.reserved = np.zeros((self.size, self.size), dtype=bool)
 
-    def place_finder_patterns(self, pattern: FinderPattern):
-        positions = [(0, 0), (0, self.size - 7), (self.size - 7, 0)]
-        for r, c in positions:
-            self.matrix[r:r+7, c:c+7] = pattern.matrix
+    def place_finder_patterns(self, patternTopLeft: FinderPatternTopLeft, patternTopRight: FinderPatternTopRight, patternBottomLeft: FinderPatternBottomLeft):
+        self.matrix[0:8, 0:8] = patternTopLeft.matrix
+        self.matrix[0:8, self.size - 8:self.size] = patternTopRight.matrix
+        self.matrix[self.size - 8:self.size, 0:8] = patternBottomLeft.matrix
+
+        self.reserved[0:8, 0:8] = True
+        self.reserved[0:8, self.size - 8:self.size] = True
+        self.reserved[self.size - 8:self.size, 0:8] = True
 
     def place_alignment_patterns(self, pattern: AlignmentPattern):
         if self.version < 2:
             return  
 
         alignment_positions = self.get_alignment_positions()
-
         for r, c in alignment_positions:
             if not self.is_reserved(r, c):
                 self.matrix[r-2:r+3, c-2:c+3] = pattern.matrix
+                self.reserved[r-2:r+3, c-2:c+3] = True
 
     def get_alignment_positions(self):
         alignment_centers = [
@@ -93,13 +126,8 @@ class QRCodeEncoder:
         return [(r, c) for r in alignment_coords for c in alignment_coords if not (r < 9 and c < 9)]
 
     def is_reserved(self, row, col):
-        if row < 9 and col < 9 or row < 9 and col >= self.size - 8 or row >= self.size - 8 and col < 9:
-            return True 
+        return self.reserved[row, col]
 
-        if row == 6 or col == 6:
-            return True  
-
-        return False
 
     def visualize(self):
         display_matrix = 1 - np.where(self.matrix == None, 0, self.matrix).astype(int)
@@ -110,7 +138,7 @@ class QRCodeEncoder:
         plt.yticks([])
         plt.show()
 
-qr = QRCodeEncoder(25) 
-qr.place_finder_patterns(FinderPattern())
+qr = QRCodeEncoder(8) 
+qr.place_finder_patterns(FinderPatternTopLeft(), FinderPatternTopRight(), FinderPatternBottomLeft())
 qr.place_alignment_patterns(AlignmentPattern())
 qr.visualize()
