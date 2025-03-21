@@ -14,7 +14,6 @@ class FinderPattern:
         1,1,1,1,1,1,1
     ]).reshape(7, 7)
 
-
 @dataclass
 class AlignmentPattern:
     matrix = np.array([
@@ -25,15 +24,15 @@ class AlignmentPattern:
         1,1,1,1,1
     ]).reshape(5, 5)
 
-
 class QRCodeEncoder:
-    def __init__(self, version):
+    def __init__(self, version:int,bits:str):
         self.version = version
+        self.bits = bits
         self.size = 4 * version + 17
         self.matrix = np.full((self.size, self.size), None) 
         self.reserved = np.zeros((self.size, self.size), dtype=bool)
 
-    def place_finder_patterns(self,pattern: FinderPattern):
+    def place_finder_patterns(self, pattern: FinderPattern):
         self.matrix[0:7, 0:7] = pattern.matrix
         self.matrix[0:7, self.size - 7:self.size] = pattern.matrix
         self.matrix[self.size - 7:self.size, 0:7] = pattern.matrix
@@ -114,18 +113,65 @@ class QRCodeEncoder:
         return self.reserved[row, col]
     
     def place_dark_module(self):
-        row, col =4 * self.version + 9, 8 
+        row, col = 4 * self.version + 9, 8 
         self.matrix[row, col] = 1
         self.reserved[row, col] = True
 
     def reserve_format_area(self):
+        for i in range(9):
+            if i != 6: 
+                if not self.is_reserved(i, 8):
+                    self.reserved[i, 8] = True
+                if not self.is_reserved(8, i):
+                    self.reserved[8, i] = True
         
-        self.matrix[8,0] =1
+        for i in range(8):
+            if not self.is_reserved(self.size - 1 - i, 8):
+                self.reserved[self.size - 1 - i, 8] = True
+            if not self.is_reserved(8, self.size - 1 - i):
+                self.reserved[8, self.size - 1 - i] = True
 
     def reserve_version_area(self):
-        pass
+        self.matrix[0:6, self.size - 11:self.size - 8] = 3
+        self.matrix[self.size - 11:self.size - 8, 0:6] = 3
+        self.reserved[0:6, self.size - 11:self.size - 8] = True
+        self.reserved[self.size - 11:self.size - 8, 0:6] = True
+
+    def place_bits(self):
+        row, col = self.size - 1, self.size - 1  # Start at bottom-right
+        direction = -1  # Moving up initially
+        bit_index = 0
+
+        while col > 0:
+            if col == 6:  # Skip vertical timing pattern column
+                col -= 1
+
+            for i in range(2):  # Work on two columns at a time
+                c = col - i
+                if c < 0:
+                    continue
+                if not self.reserved[row][c] and bit_index < len(self.bits):
+                    self.matrix[row][c] = int(self.bits[bit_index])
+                    bit_index += 1
+                
+                row += direction
+                if row < 0 or row >= self.size:
+                    row -= direction
+                    direction = -direction
+                    col -= 2  
+                    break
+
 
     def visualize(self):
+        self.place_finder_patterns(FinderPattern())
+        self.place_alignment_patterns(AlignmentPattern())
+        self.place_timing_patterns()
+        self.place_dark_module()
+        self.reserve_format_area()
+        if self.version >= 7:
+            self.reserve_version_area()
+        self.place_bits()
+        
         display_matrix = 1 - np.where(self.matrix == None, 0, self.matrix).astype(int)
 
         plt.figure(figsize=(8, 8))
@@ -134,10 +180,5 @@ class QRCodeEncoder:
         plt.yticks([])
         plt.show()
 
-qr = QRCodeEncoder(7) 
-qr.place_finder_patterns(FinderPattern())
-qr.place_alignment_patterns(AlignmentPattern())
-qr.place_timing_patterns()
-qr.place_dark_module()
-qr.reserve_format_area()
+qr = QRCodeEncoder(6, "0100000000000000000000000000000000000000000000000000000000000000101101000000000000000000000000001000011000000000000000000000000001010110000000000000000000000000110001100000000000000000000000001100011000000000000000000000000011110111000000000000000000000000011101100000000000000000000000001111011100000000000000000000000000100110000000000000000000000000110001100000000000000000000000000100001000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001011110000000000000000000000001000000100000000000000000000000001110001000000000000000000000000100101010000000000000000000000000011110000000000000000000000000000110001000000000000000000000000111100010000000000000000000000000101010100000000000000000000000010001100000000000000000000000000000101110000000000000000000000001110101000000000000000000000000000000011000000000000000000000000001100010000000000000000000000001011110000000000000000000000000000001011000000000000000000000000011111000000000000000000000000000001011000000000000000000000000010011101000000000000000000000000")
 qr.visualize()

@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     message,mode = "".join(message_and_mode[0:-1]), message_and_mode[-1]
     version= input("Version(for example 5 L): ").split(" ")
-    version_number,error_correction_level = version[0], version[1]
+    version_number,error_correction_level = int(version[0]), version[1]
     print("".join(message))
     encoder = Encoder() 
     char_count,encoded_message,mode = getattr(encoder,mode)(message)
@@ -24,4 +24,6 @@ if __name__ == "__main__":
 
     interleave_blocks = error_corrector.generate_interleave_blocks()
     print(interleave_blocks)
-    qr_renderer = QRCodeEncoder()
+    qr_renderer = QRCodeEncoder(version_number,interleave_blocks)
+
+    qr_renderer.visualize()

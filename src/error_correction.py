@@ -9,15 +9,15 @@ class ErrorCorrector:
         self.data = pd.read_csv("./src/data.csv")  
         self.num_blocks_g1 = int(self.get_block_info["Number of Blocks in Group 1"].values[0])
         self.num_blocks_g2 = (
-            int(a := self.get_block_info["Number of Blocks in Group 2"].values[0])
-            if (len(values := self.get_block_info["Number of Blocks in Group 2"].values) > 0 and pd.notna(a := values[0]))
+            int(self.get_block_info["Number of Blocks in Group 2"].values[0])
+            if (len(values := self.get_block_info["Number of Blocks in Group 2"].values) > 0 and pd.notna(values[0]))
             else 0
         )
         self.ec_codewords_per_block = int(self.get_block_info["EC Codewords Per Block"].values[0])
         self.data_codeword_per_block1 = int(self.get_block_info["Data Codewords per Block in Group 1"].values[0])
         self.data_codeword_per_block2 = (
-            int(a := self.get_block_info["Data Codewords per Block in Group 2"].values[0])
-            if (len(values := self.get_block_info["Data Codewords per Block in Group 2"].values) > 0 and pd.notna(a := values[0]))
+            int(self.get_block_info["Data Codewords per Block in Group 2"].values[0])
+            if (len(values := self.get_block_info["Data Codewords per Block in Group 2"].values) > 0 and pd.notna(values[0]))
             else 0
         )
         self.rs = ReedSolomon()
@@ -101,6 +101,3 @@ class ErrorCorrector:
         final_bit_stream = ''.join(interleaved_data + interleaved_ec)
 
         return final_bit_stream
-
-
-
