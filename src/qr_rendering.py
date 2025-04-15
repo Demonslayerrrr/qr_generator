@@ -1,7 +1,10 @@
 import numpy as np
+import matplotlib
+matplotlib.use('module://matplotlib-backend-kitty')
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from pandas import read_csv
+from masking import Masking
 
 @dataclass
 class FinderPattern:
@@ -146,75 +149,30 @@ class QRCodeEncoder:
 
     def place_bits(self):
         row, col = self.size - 1, self.size - 1 
-        direction = -1  
+        direction_up = True
         bit_index = 0
-
-        while col > 0:
-            if col == 6:  
+        
+        while col >= 0 and bit_index < len(self.bits):
+            if not self.reserved[row][col]:
+                self.matrix[row][col] = int(self.bits[bit_index])
+                bit_index += 1
+            
+            if direction_up:
+                if row > 0:
+                    row -= 1
+                else:
+                    col -= 1
+                    direction_up = False
+            else:
+                if row < self.size - 1:
+                    row += 1
+                else:
+                    col -= 1
+                    direction_up = True
+                    
+            if col == 6:
                 col -= 1
 
-            for i in range(2): 
-                c = col - i
-                if c < 0:
-                    continue
-                if not self.reserved[row][c] and bit_index < len(self.bits):
-                    self.matrix[row][c] = int(self.bits[bit_index])
-                    bit_index += 1
-                
-                row += direction
-                if row < 0 or row >= self.size:
-                    row -= direction
-                    direction = -direction
-                    col -= 2  
-                    break
-
-    def mask_condition(self, row, col, mask_pattern:int):
-        match mask_pattern:
-            case 0: return (row+col)%2 == 0
-            case 1: return row%2 == 0
-            case 2: return col%3 == 0
-            case 3: return (row+col)%3 == 0
-            case 4: return (row//2 + col//3)%2 == 0
-            case 5: return (row*col)%2 + (row*col)%3 == 0
-            case 6: return ((row*col)%2 + (row*col)%3)%2 == 0
-            case 7: return ((row*col)%3 + (row+col)%2)%2 == 0
-            case _: return False
-
-    def apply_mask(self, mask_pattern:int):
-        for r in range(self.size):
-            for c in range(self.size):
-                if not self.reserved[r, c]:
-                    if self.mask_condition(r, c, mask_pattern):
-                        self.matrix[r, c] = not self.matrix[r, c]
-    def calculate_score(self):
-        score = 0
-        for r in range(self.size):
-            for c in range(self.size):
-                if not self.reserved[r, c]:
-                    if self.matrix[r, c] == 1:
-                        score += 3
-                        if r > 0 and not self.reserved[r-1, c]:
-                            score += 1
-                        if c > 0 and not self.reserved[r, c-1]:
-                            score += 1
-                        if r < self.size - 1 and not self.reserved[r+1, c]:
-                            score += 1
-                        if c < self.size - 1 and not self.reserved[r, c+1]:
-                            score += 1
-        return score
-    def evaluate_mask(self):
-        best_score = 0
-        best_mask = 0
-        for mask in range(8):
-            self.apply_mask(mask)
-            score = self.calculate_score()
-            if score > best_score:
-                best_score = score
-                best_mask = mask
-            self.apply_mask(mask)
-
-        return best_mask
-    
     def place_format_string(self,mask_pattern:int):
         self.toggle_reserve_format_area(False)
         format_string = self.format_string_table[(self.format_string_table["Mask Pattern"] == mask_pattern) & (self.format_string_table["ECC Level"] == self.error_correction_level)]["Type Information Bits"].values[0]
@@ -239,8 +197,9 @@ class QRCodeEncoder:
         if self.version >= 7:
             self.toggle_reserve_version_area(True)
         self.place_bits()
-        mask_pattern = self.evaluate_mask()
-        self.apply_mask(mask_pattern)
+        masking = Masking(self.matrix,self.size,self.reserved)
+        mask_pattern = masking.evaluate_mask()
+        masking.apply_mask(mask_pattern)
 
         
         display_matrix = 1 - np.where(self.matrix == None, 0, self.matrix).astype(int)
@@ -251,6 +210,4 @@ class QRCodeEncoder:
         plt.yticks([])
         plt.show()
 
-# qr = QRCodeEncoder(3, "0100000000000000000000000000000000000000000000000000000000000000101101000000000000000000000000001000011000000000000000000000000001010110000000000000000000000000110001100000000000000000000000001100011000000000000000000000000011110111000000000000000000000000011101100000000000000000000000001111011100000000000000000000000000100110000000000000000000000000110001100000000000000000000000000100001000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001011110000000000000000000000001000000100000000000000000000000001110001000000000000000000000000100101010000000000000000000000000011110000000000000000000000000000110001000000000000000000000000111100010000000000000000000000000101010100000000000000000000000010001100000000000000000000000000000101110000000000000000000000001110101000000000000000000000000000000011000000000000000000000000001100010000000000000000000000001011110000000000000000000000000000001011000000000000000000000000011111000000000000000000000000000001011000000000000000000000000010011101000000000000000000000000")
-qr = QRCodeEncoder(2,"L", "0100000000000001100001101000011101000111010001110000011100110011101000101111001011110111010101100110011000110110011001101001011000100110000100000011101101110100101101001001011111100110111000101111011110001100")
-qr.visualize()
+

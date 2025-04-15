@@ -27,4 +27,3 @@ class BitStreamSender:
         return self.indicators[mode] + " " + format(character_count, f"0{bytes_number_for_character_count}b") + " " + encoded + " " + self.terminator
     
 
-# print(BitStreamSender().send_bit_stream('byte',11, '01001000 01100101 01101100 01101100 01101111 01110111 01101111 01110010 01101100 01100100 00100001'))

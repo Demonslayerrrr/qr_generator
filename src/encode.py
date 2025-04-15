@@ -105,4 +105,3 @@ class Encoder:
         return character_count,output,"kanji"
 
 
-# print(Encoder().bytes("Hello world!"))
