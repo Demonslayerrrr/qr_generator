@@ -22,7 +22,7 @@ class Masking:
             for c in range(self.size):
                 if not self.reserved[r, c]:
                     if self.mask_condition(r, c, mask_pattern):
-                        self.matrix[r, c] = not self.matrix[r, c]
+                        self.matrix[r, c] ^=1
                         
     def calculate_total_penalty(self):
         def penalty_case_1():

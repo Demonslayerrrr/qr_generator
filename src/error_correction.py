@@ -2,10 +2,10 @@ import pandas as pd
 from reed_solomon import ReedSolomon
 
 class ErrorCorrector:
-    def __init__(self, bit_stream: str) -> None:
+    def __init__(self, bit_stream: str, version:int, error_correction_level:str) -> None:
         self.bit_stream = bit_stream.replace(" ", "")
         self.data = pd.read_csv("./src/data.csv")
-        self.version, self.error_correction_level = self.choose_qr_version_and_level()
+        self.version, self.error_correction_level = version,error_correction_level
         self.num_blocks_g1 = int(self.get_block_info["Number of Blocks in Group 1"].values[0])
         self.num_blocks_g2 = (
             int(self.get_block_info["Number of Blocks in Group 2"].values[0])
@@ -87,18 +87,4 @@ class ErrorCorrector:
         final_bit_stream = ''.join(interleaved_data + interleaved_ec)
         return final_bit_stream
 
-    def choose_qr_version_and_level(self):
-        data_bytes = len(self.bit_stream) / 8
-        error_correction_levels = ['L', 'M', 'Q', 'H']
-
-        for version in range(1, 41):
-            for level in error_correction_levels:
-                version_data = self.data[(self.data['Version'] == version) & (self.data['EC Level'] == level)]
-                if not version_data.empty:
-                    codewords = version_data['Total Data Codewords'].values[0]
-                    if data_bytes <= codewords:
-                        return version, level
-
-        return None, None
-
-
+    

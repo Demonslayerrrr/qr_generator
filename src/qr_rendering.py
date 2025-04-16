@@ -7,17 +7,43 @@ from pandas import read_csv
 from masking import Masking
 
 @dataclass
-class FinderPattern:
+class LeftTopFinderPattern:
     matrix = np.array([
-        1,1,1,1,1,1,1,
-        1,0,0,0,0,0,1,
-        1,0,1,1,1,0,1,
-        1,0,1,1,1,0,1,
-        1,0,1,1,1,0,1,
-        1,0,0,0,0,0,1,
-        1,1,1,1,1,1,1
-    ]).reshape(7, 7)
+        1,1,1,1,1,1,1,0,
+        1,0,0,0,0,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,0,0,0,0,1,0,
+        1,1,1,1,1,1,1,0,
+        0,0,0,0,0,0,0,0,
+    ]).reshape(8,8)
 
+@dataclass
+class RightTopFinderPattern:
+    matrix = np.array([
+        0,1,1,1,1,1,1,1,
+        0,1,0,0,0,0,0,1,
+        0,1,0,1,1,1,0,1,
+        0,1,0,1,1,1,0,1,
+        0,1,0,1,1,1,0,1,
+        0,1,0,0,0,0,0,1,
+        0,1,1,1,1,1,1,1,
+        0,0,0,0,0,0,0,0,
+    ]).reshape(8,8)
+
+@dataclass
+class LeftBottomFinderPattern:
+    matrix = np.array([
+        0,0,0,0,0,0,0,0,
+        1,1,1,1,1,1,1,0,
+        1,0,0,0,0,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,1,1,1,0,1,0,
+        1,0,0,0,0,0,1,0,
+        1,1,1,1,1,1,1,0,
+    ]).reshape(8,8)
 @dataclass
 class AlignmentPattern:
     matrix = np.array([
@@ -34,7 +60,7 @@ class QRCodeEncoder:
         self.error_correction_level = error_correction_level
         self.bits = bits
         self.size = 4 * version + 17
-        self.matrix = np.full((self.size, self.size), None) 
+        self.matrix = np.full((self.size, self.size), 0) 
         self.reserved = np.zeros((self.size, self.size), dtype=bool)
 
         self.format_string_table = read_csv("./src/format_string_table.csv")
@@ -42,12 +68,15 @@ class QRCodeEncoder:
         
 
 
-    def place_finder_patterns(self, pattern: FinderPattern):
-        self.matrix[0:7, 0:7] = pattern.matrix
-        self.matrix[0:7, self.size - 7:self.size] = pattern.matrix
-        self.matrix[self.size - 7:self.size, 0:7] = pattern.matrix
+    def place_finder_patterns(self, 
+                              left_top:LeftTopFinderPattern,
+                              right_top:RightTopFinderPattern,
+                              left_bottom:LeftBottomFinderPattern):
+        self.matrix[0:8, 0:8] = left_top.matrix
+        self.matrix[0:8, self.size - 8:self.size] = right_top.matrix
+        self.matrix[self.size - 8:self.size, 0:8] = left_bottom.matrix
 
-        self.reserved[0:7, 0:7] = True
+        self.reserved[0:8, 0:8] = True
         self.reserved[0:8, self.size - 8:self.size] = True
         self.reserved[self.size - 8:self.size, 0:8] = True
 
@@ -189,7 +218,9 @@ class QRCodeEncoder:
             self.reserved[8, self.size - 1 - i] = format_string[len(format_string) - i]
 
     def visualize(self):
-        self.place_finder_patterns(FinderPattern())
+        self.place_finder_patterns(LeftTopFinderPattern(),
+                                   RightTopFinderPattern(),
+                                   LeftBottomFinderPattern())
         self.place_alignment_patterns(AlignmentPattern())
         self.place_timing_patterns()
         self.place_dark_module()

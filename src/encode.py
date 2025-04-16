@@ -69,7 +69,7 @@ class Encoder:
         output = ""
         for value in hex_values:
             output +=" " + value
-        return characters_count,output.strip(), "byte"
+        return characters_count,output.strip(), "bytes"
 
     def kanji(self,s:str) -> str:
         s = [i.encode("shift_jis").hex() for i in s.split(" ")]
