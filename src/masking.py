@@ -2,9 +2,9 @@
 class Masking:
     def __init__(self, matrix, size, reserved):
         self.matrix = matrix
-        self.size = size 
+        self.size = size
         self.reserved = reserved
-        
+
     def mask_condition(self, row, col, mask_pattern:int):
         match mask_pattern:
             case 0: return (row+col)%2 == 0
@@ -23,7 +23,7 @@ class Masking:
                 if not self.reserved[r, c]:
                     if self.mask_condition(r, c, mask_pattern):
                         self.matrix[r, c] ^=1
-                        
+
     def calculate_total_penalty(self):
         def penalty_case_1():
             penalty = 0
@@ -31,11 +31,11 @@ class Masking:
             for row in self.matrix:
                 current_color = row[0]
                 current_streak = 1
-                
+
                 for c in range(1, self.size):
                     if row[c] == current_color:
                         current_streak += 1
-                    else: 
+                    else:
                         if current_streak >= 5:
                             penalty += 3 + (current_streak - 5)
                         current_streak = 1
@@ -45,17 +45,17 @@ class Masking:
 
             for c in range(self.size):
                 current_color = self.matrix[0][c]
-                current_streak = 1  
-                
+                current_streak = 1
+
                 for r in range(1, self.size):
                     if self.matrix[r][c] == current_color:
                         current_streak += 1
-                    else: 
+                    else:
                         if current_streak >= 5:
                             penalty += 3 + (current_streak - 5)
                         current_streak = 1
                         current_color = self.matrix[r][c]
-                
+
                 if current_streak >= 5:
                     penalty += 3 + (current_streak - 5)
 
@@ -70,7 +70,7 @@ class Masking:
             return penalty
 
         def penalty_case_3():
-            pattern1 = [1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0] 
+            pattern1 = [1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0]
             pattern2 = [0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1]
 
             penalty = 0
@@ -95,34 +95,32 @@ class Masking:
 
         def penalty_case_4():
             total_modules = self.size * self.size
-        
+
             dark_modules = 0
             for row in self.matrix:
                 for cell in row:
                     if cell == 1:
                         dark_modules += 1
-        
+
             percent_dark = (dark_modules / total_modules) * 100
-        
+
             deviation = abs(percent_dark - 50)
             steps = int(deviation / 5)
-        
+
             return steps * 10
         total_penalty = penalty_case_1() + penalty_case_2() + penalty_case_3() + penalty_case_4()
         return total_penalty
     def evaluate_mask(self):
         best_mask = 0
         lowest_penalty = float('inf')
-        
+
         for mask in range(8):
             self.apply_mask(mask)
-            
+
             penalty = self.calculate_total_penalty()
-            
+
             if penalty < lowest_penalty:
                 lowest_penalty = penalty
                 best_mask = mask
-                
-            self.apply_mask(mask)
 
         return best_mask

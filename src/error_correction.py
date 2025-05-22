@@ -4,7 +4,7 @@ from reed_solomon import ReedSolomon
 class ErrorCorrector:
     def __init__(self, bit_stream: str, version:int, error_correction_level:str) -> None:
         self.bit_stream = bit_stream.replace(" ", "")
-        self.data = pd.read_csv("./src/data.csv")
+        self.data = pd.read_csv("data.csv")
         self.version, self.error_correction_level = version,error_correction_level
         self.num_blocks_g1 = int(self.get_block_info["Number of Blocks in Group 1"].values[0])
         self.num_blocks_g2 = (
@@ -86,5 +86,3 @@ class ErrorCorrector:
 
         final_bit_stream = ''.join(interleaved_data + interleaved_ec)
         return final_bit_stream
-
-    

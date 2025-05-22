@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib
-matplotlib.use('module://matplotlib-backend-kitty')
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from pandas import read_csv
@@ -63,8 +61,8 @@ class QRCodeEncoder:
         self.matrix = np.full((self.size, self.size), 0) 
         self.reserved = np.zeros((self.size, self.size), dtype=bool)
 
-        self.format_string_table = read_csv("./src/format_string_table.csv")
-        self.version_string_table = read_csv("./src/version_string_table.csv")
+        self.format_string_table = read_csv("format_string_table.csv")
+        self.version_string_table = read_csv("version_string_table.csv")
         
 
 
@@ -161,20 +159,17 @@ class QRCodeEncoder:
     def toggle_reserve_format_area(self,bool_state:bool):
         for i in range(9):
             if i != 6: 
-                if not self.is_reserved(i, 8):
-                    self.reserved[i, 8] = bool_state
-                if not self.is_reserved(8, i):
-                    self.reserved[8, i] = bool_state
+                self.reserved[i, 8] = bool_state
+                self.reserved[8, i] = bool_state
         
         for i in range(8):
-            if not self.is_reserved(self.size - 1 - i, 8):
-                self.reserved[self.size - 1 - i, 8] = bool_state
-            if not self.is_reserved(8, self.size - 1 - i):
-                self.reserved[8, self.size - 1 - i] = bool_state
+            self.reserved[self.size - 1 - i, 8] = bool_state
+            self.reserved[8, self.size - 1 - i] = bool_state
 
     def toggle_reserve_version_area(self, bool_state:bool):
-        self.reserved[0:6, self.size - 11:self.size - 8] = bool_state
-        self.reserved[self.size - 11:self.size - 8, 0:6] = bool_state
+        if self.version>=7:
+            self.reserved[0:6, self.size - 11:self.size - 8] = bool_state
+            self.reserved[self.size - 11:self.size - 8, 0:6] = bool_state
 
     def place_bits(self):
         row, col = self.size - 1, self.size - 1 
@@ -202,20 +197,45 @@ class QRCodeEncoder:
             if col == 6:
                 col -= 1
 
-    def place_format_string(self,mask_pattern:int):
+    def place_format_string(self, mask_pattern: int):
         self.toggle_reserve_format_area(False)
-        format_string = self.format_string_table[(self.format_string_table["Mask Pattern"] == mask_pattern) & (self.format_string_table["ECC Level"] == self.error_correction_level)]["Type Information Bits"].values[0]
-        
-        for i in range(9):
-            if i != 6: 
-                self.matrix[i,8] = format_string[i]
 
-                self.matrix[8, i] = format_string[i]
-        
+        format_string = self.format_string_table[
+            (self.format_string_table["Mask Pattern"] == mask_pattern) &
+            (self.format_string_table["ECC Level"] == self.error_correction_level)
+            ]["Type Information Bits"].values[0]
+        format_string = str(format_string).zfill(15)
+        bits = [int(b) for b in format_string]
+
+        for i in range(6):
+            self.matrix[i, 8] = bits[i]
+            self.reserved[i, 8] = True
+        self.matrix[7, 8] = bits[6]
+        self.reserved[7, 8] = True
+        self.matrix[8, 8] = bits[7]
+        self.reserved[8, 8] = True
+        self.matrix[8, 7] = bits[8]
+        self.reserved[8, 7] = True
+
+
+        for i in range(6):
+            self.matrix[8, 5 - i] = bits[9 + i]
+            self.reserved[8, 5 - i] = True
+        self.matrix[8, 8] = bits[7]
+        self.matrix[8, 8] = bits[7]
+        self.reserved[8, 8] = True
+        self.matrix[8, 8] = bits[7]
+
+
+        for i in range(7):
+            self.matrix[self.size - 1 - i, 8] = bits[i]
+            self.reserved[self.size - 1 - i, 8] = True
+
         for i in range(8):
+            self.matrix[8, self.size - 1 - i] = bits[7 + i]
+            self.reserved[8, self.size - 1 - i] = True
 
-            self.matrix[self.size - 1 - i, 8] = format_string[len(format_string) - i]
-            self.reserved[8, self.size - 1 - i] = format_string[len(format_string) - i]
+        self.toggle_reserve_format_area(True)
 
     def visualize(self):
         self.place_finder_patterns(LeftTopFinderPattern(),
@@ -232,6 +252,7 @@ class QRCodeEncoder:
         mask_pattern = masking.evaluate_mask()
         masking.apply_mask(mask_pattern)
 
+        self.place_format_string(mask_pattern)
         
         display_matrix = 1 - np.where(self.matrix == None, 0, self.matrix).astype(int)
 

@@ -24,17 +24,17 @@ if __name__ == "__main__":
     encoder = Encoder() 
     char_count,encoded_message,mode = getattr(encoder,mode)(message)
 
-    bit_stream_sender = BitStreamSender()
+    bit_stream_sender = BitStreamSender(mode, char_count, encoded_message)
 
-    version_number,error_correction_level = bit_stream_sender.estimate_version_and_level(mode, char_count, encoded_message)
-    bit_stream = bit_stream_sender.build_bit_stream(mode,char_count,encoded_message, version_number)
+    bit_stream = bit_stream_sender.build_bit_stream()
 
+    print(bit_stream,len(bit_stream))
     reed_solomon = ReedSolomon()
-    error_corrector = ErrorCorrector(bit_stream,version_number,error_correction_level)
+    error_corrector = ErrorCorrector(bit_stream,bit_stream_sender.version,bit_stream_sender.ec_level)
 
     interleave_blocks = error_corrector.generate_interleave_blocks()
 
 
-    qr_renderer = QRCodeEncoder(version_number,error_correction_level,interleave_blocks)
+    qr_renderer = QRCodeEncoder(bit_stream_sender.version,bit_stream_sender.ec_level,interleave_blocks)
 
     qr_renderer.visualize()
