@@ -1,3 +1,5 @@
+from functools import reduce
+
 class Encoder:
     def __init__(self) -> None:
         self._ALPHANUMERIC_TABLE = {
@@ -33,32 +35,57 @@ class Encoder:
 
         return character_count,output.strip(), "numeric"
 
+    def alphanumeric(self, s: str) -> tuple:
+        # s = s.replace(" ", "")
+        # character_count = len(s)
+        #
+        # mode_indicator = "0010"
+        #
+        # character_count_indicator = format(character_count, '09b')
+        #
+        # results = []
+        # i = 0
+        # while i < len(s) - 1:
+        #     c1 = self._ALPHANUMERIC_TABLE[s[i]]
+        #     c2 = self._ALPHANUMERIC_TABLE[s[i + 1]]
+        #     val = 45 * c1 + c2
+        #     results.append(format(val, '011b'))
+        #     i += 2
+        #
+        # if i < len(s):
+        #     results.append(format(self._ALPHANUMERIC_TABLE[s[i]], '06b'))
+        #
+        # encoded_data = ''.join(results)
+        #
+        # final_output = mode_indicator + character_count_indicator + encoded_data
+        #
+        # return character_count, final_output, "alphanumeric"
+        def encode_pair(pair):
+            if len(pair) == 2:
+                val = 45 * self._ALPHANUMERIC_TABLE[pair[0]] + self._ALPHANUMERIC_TABLE[pair[1]]
+                return format(val, '011b')
+            else:
+                val = self._ALPHANUMERIC_TABLE[pair[0]]
+                return format(val, '06b')
 
-    def alphanumeric(self,s:str) ->tuple:
-        l = []
-        s = s.replace(" ","")
-        
-        character_count = len(s)
-        for i in range(0,len(s),2):
-            l.append(s[i:i+2])
+        def split_pairs(s: str):
+            pairs = []
+            i = 0
+            while i < len(s):
+                if i + 1 < len(s):
+                    pairs.append(s[i] + s[i + 1])
+                    i += 2
+                else:
+                    pairs.append(s[i])
+                    i += 1
+            return pairs
 
-        results = []
-        single_element = None
+        character_len = len(s)
 
+        res = reduce(lambda acc, pair: acc + encode_pair(pair), split_pairs(s), '')
 
-        if len(l[-1]) % 2 !=0:
-            single_element = format(self._ALPHANUMERIC_TABLE[l.pop()],'06b')
+        return character_len,res, "alphanumeric"
 
-        
-        for pair in l:
-            results.append(format(self._ALPHANUMERIC_TABLE[pair[0]]*self._ALPHANUMERIC_MULTIPLIER + self._ALPHANUMERIC_TABLE[pair[1]], '011b'))
-
-        if single_element:
-            results.append(single_element)
-
-        output = ''.join(results)
-        return character_count, output, "alphanumeric"
-    
     def bytes(self,s:str) -> tuple:
         hex_values = [format(int(format(ord(i),'02x'),16),"08b") for i in s.replace(" ", "")]
         characters_count = len(hex_values)
@@ -100,5 +127,3 @@ class Encoder:
             output += result_binary
 
         return character_count,output,"kanji"
-
-

@@ -24,7 +24,7 @@ if __name__ == "__main__":
     encoder = Encoder() 
     char_count,encoded_message,mode = getattr(encoder,mode)(message)
 
-    bit_stream_sender = BitStreamSender(mode, char_count, encoded_message)
+    bit_stream_sender = BitStreamSender(char_count,encoded_message,mode)
 
     bit_stream = bit_stream_sender.build_bit_stream()
 

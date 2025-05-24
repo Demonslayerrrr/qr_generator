@@ -1,9 +1,8 @@
 import pandas as pd
 from encode import Encoder
 
-
 class BitStreamSender:
-    def __init__(self, mode,char_count,encoded) -> None:
+    def __init__(self, char_count,encoded,mode) -> None:
         self.indicators = {
             "numeric": "0001",
             "alphanumeric": "0010",
@@ -23,7 +22,7 @@ class BitStreamSender:
         self.mode = mode
         self.char_count = char_count
         self.encoded = encoded
-        self.version, self.ec_level = self.estimate_version_and_level(mode,char_count,encoded)
+        self.version, self.ec_level = self.estimate_version_and_level(mode, char_count, encoded)
 
     def get_character_count_length(self, mode: str) -> int:
         for version_range, count_length in self.character_count_indicator_table[mode].items():
@@ -31,7 +30,7 @@ class BitStreamSender:
                 return count_length
         raise ValueError(f"Version {self.version} out of range for mode {mode}")
 
-    def build_temporary_bit_stream(self, mode: str, character_count: int, encoded: str) -> str:
+    def build_bit_stream_without_paddings(self, mode: str, character_count: int, encoded: str) -> str:
         count_len = self.get_character_count_length(mode)
         return (
             self.indicators[mode] +
@@ -40,25 +39,30 @@ class BitStreamSender:
             self.terminator
         )
 
-    def add_paddings(self, bit_stream: str) -> str:
-        bits_len = len(bit_stream)
+    def make_8_bits_groups(self):
+        bit_stream = self.build_bit_stream_without_paddings(self.mode, self.char_count, self.encoded)
+        groups = []
+        for i in range(0, len(bit_stream), 8):
+            groups.append(bit_stream[i:i + 8])
+        return groups
 
-        if bits_len % 8 != 0:
-            bit_stream += "0" * (8 - bits_len % 8)
+
+    def build_bit_stream(self) -> str:
+        groups = self.make_8_bits_groups()
+
+        for idx, val in enumerate(groups):
+            if len(val) < 8:
+                groups[idx] = val + "0" * (8 - len(val))
 
         total_codewords = self.data[
             (self.data['Version'] == self.version) & (self.data['EC Level'] == self.ec_level)
             ]['Total Data Codewords'].values[0]
 
-        while len(bit_stream) < total_codewords * 8:
-            bit_stream += self.paddings[(len(bit_stream) // 8) % 2]
+        groups_str = "".join(groups)
+        while len(groups_str) < total_codewords * 8:
+            groups_str += self.paddings[(len(groups_str) // 8) % 2]
 
-        return bit_stream
-
-
-    def build_bit_stream(self) -> str:
-            bit_stream = self.build_temporary_bit_stream(self.mode, self.char_count, self.encoded)
-            return self.add_paddings(bit_stream)
+        return groups_str
 
     def estimate_version_and_level(self, mode: str, character_count: int, encoded: str):
         for version in range(1, 41):
