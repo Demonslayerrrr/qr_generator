@@ -17,12 +17,12 @@ class Masking:
             case 7: return ((row*col)%3 + (row+col)%2)%2 == 0
             case _: return False
 
-    def apply_mask(self, mask_pattern:int):
+    def apply_mask(self, mask_pattern:int,matrix):
         for r in range(self.size):
             for c in range(self.size):
                 if not self.reserved[r, c]:
                     if self.mask_condition(r, c, mask_pattern):
-                        self.matrix[r, c] ^=1
+                        matrix[r, c] ^=1
 
     def calculate_total_penalty(self):
         def penalty_case_1():
@@ -114,8 +114,10 @@ class Masking:
         best_mask = 0
         lowest_penalty = float('inf')
 
+        original_matrix = self.matrix.copy()
+
         for mask in range(8):
-            self.apply_mask(mask)
+            self.apply_mask(mask,original_matrix.copy())
 
             penalty = self.calculate_total_penalty()
 

@@ -20,16 +20,9 @@ class ErrorCorrector:
             else 0
         )
         self.rs = ReedSolomon()
-
-    @property
-    def padding_handler(self):
-        while len(self.bit_stream) % 8 != 0:
-            self.bit_stream += "0"
-        return self.bit_stream
-
     @property
     def bit_stream_groups(self):
-        group_storage = [self.bit_stream[i:i + 8] for i in range(0, len(self.padding_handler), 8)]
+        group_storage = [self.bit_stream[i:i + 8] for i in range(0, len(self.bit_stream), 8)]
         return group_storage
 
     @property

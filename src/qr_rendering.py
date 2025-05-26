@@ -101,6 +101,8 @@ class QRCodeEncoder:
                 self.matrix[i, 6] = not (i % 2)
                 self.reserved[i, 6] = True
 
+
+
     def get_alignment_positions(self):
         alignment_centers = [
             [],  # Version 1 (no alignment pattern)
@@ -172,30 +174,40 @@ class QRCodeEncoder:
             self.reserved[self.size - 11:self.size - 8, 0:6] = bool_state
 
     def place_bits(self):
-        row, col = self.size - 1, self.size - 1 
+        row, col = self.size - 1, self.size - 1
         direction_up = True
         bit_index = 0
-        
+        going_left = True
+
         while col >= 0 and bit_index < len(self.bits):
-            if not self.reserved[row][col]:
-                self.matrix[row][col] = int(self.bits[bit_index])
-                bit_index += 1
-            
-            if direction_up:
-                if row > 0:
-                    row -= 1
-                else:
-                    col -= 1
-                    direction_up = False
-            else:
-                if row < self.size - 1:
-                    row += 1
-                else:
-                    col -= 1
-                    direction_up = True
-                    
+
             if col == 6:
                 col -= 1
+                continue
+
+            if not self.reserved[row, col]:
+                self.matrix[row, col] = int(self.bits[bit_index])
+                bit_index += 1
+
+            if going_left:
+                col -= 1
+                going_left = False
+            else:
+                col += 1
+                going_left = True
+
+                if direction_up:
+                    if row > 0:
+                        row -= 1
+                    else:
+                        col -= 2
+                        direction_up = False
+                else:
+                    if row < self.size - 1:
+                        row += 1
+                    else:
+                        col -= 2
+                        direction_up = True
 
     def place_format_string(self, mask_pattern: int):
         self.toggle_reserve_format_area(False)
@@ -206,36 +218,36 @@ class QRCodeEncoder:
             ]["Type Information Bits"].values[0]
         format_string = str(format_string).zfill(15)
         bits = [int(b) for b in format_string]
+        print(bits)
+        bit_index = 0
+        for i in range(9):
+            if i != 6:
+                if not self.is_reserved(8, i):
+                    self.matrix[8, i] = bits[bit_index]
+                    self.reserved[8, i] = True
+                    bit_index += 1
 
-        for i in range(6):
-            self.matrix[i, 8] = bits[i]
-            self.reserved[i, 8] = True
-        self.matrix[7, 8] = bits[6]
-        self.reserved[7, 8] = True
-        self.matrix[8, 8] = bits[7]
-        self.reserved[8, 8] = True
-        self.matrix[8, 7] = bits[8]
-        self.reserved[8, 7] = True
+        for i in range(8, -1, -1):
+            if i != 6:
+                if not self.is_reserved(i, 8):
+                    self.matrix[i, 8] = bits[bit_index]
+                    self.reserved[i, 8] = True
+                    bit_index += 1
 
-
-        for i in range(6):
-            self.matrix[8, 5 - i] = bits[9 + i]
-            self.reserved[8, 5 - i] = True
-        self.matrix[8, 8] = bits[7]
-        self.matrix[8, 8] = bits[7]
-        self.reserved[8, 8] = True
-        self.matrix[8, 8] = bits[7]
-
-
+        bit_index = 0
         for i in range(7):
-            self.matrix[self.size - 1 - i, 8] = bits[i]
-            self.reserved[self.size - 1 - i, 8] = True
+            if not self.is_reserved(self.size - 1 - i, 8):
+                self.matrix[self.size - 1 - i, 8] = bits[bit_index]
+                self.reserved[self.size - 1 - i, 8] = True
+                bit_index += 1
 
+        temp_list = list(reversed(bits[7:15]))
+        temp_index = 0
         for i in range(8):
-            self.matrix[8, self.size - 1 - i] = bits[7 + i]
-            self.reserved[8, self.size - 1 - i] = True
-
-        self.toggle_reserve_format_area(True)
+            if not self.is_reserved(8, self.size - 1 - i):
+                self.matrix[8, self.size - 1 - i] = temp_list[temp_index]
+                self.reserved[8, self.size - 1 - i] = True
+                temp_index += 1
 
     def visualize(self):
         self.place_finder_patterns(LeftTopFinderPattern(),
@@ -250,7 +262,7 @@ class QRCodeEncoder:
         self.place_bits()
         masking = Masking(self.matrix,self.size,self.reserved)
         mask_pattern = masking.evaluate_mask()
-        masking.apply_mask(mask_pattern)
+        masking.apply_mask(mask_pattern, self.matrix)
 
         self.place_format_string(mask_pattern)
         
