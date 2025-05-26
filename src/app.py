@@ -5,15 +5,37 @@ from error_correction import ErrorCorrector
 from qr_rendering import QRCodeEncoder
 import re
 
+def is_kanji_compatible(s: str) -> bool:
+    try:
+        sjis_encoded = s.encode("shift_jis")
+    except UnicodeEncodeError:
+        return False
+
+    i = 0
+    while i < len(sjis_encoded):
+        if i + 1 >= len(sjis_encoded):
+            return False
+        byte1 = sjis_encoded[i]
+        byte2 = sjis_encoded[i + 1]
+        pair = (byte1 << 8) | byte2
+        if not ((0x8140 <= pair <= 0x9FFC) or (0xE040 <= pair <= 0xEBBF)):
+            return False
+        i += 2
+    return True
+
 
 def detect_mode(msg: str) -> str:
     if msg.isdigit():
         return "numeric"
-    
+
     if re.fullmatch(r'[0-9A-Z $%*+\-./:]+', msg):
         return "alphanumeric"
-    
+
+    if is_kanji_compatible(msg):
+        return "kanji"
+
     return "bytes"
+
 
 if __name__ == "__main__":
     message = input("Message: ").strip()

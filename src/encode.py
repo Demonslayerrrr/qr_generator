@@ -14,52 +14,29 @@ class Encoder:
         self._RANGES_KANJI= {(0x8140, 0x9FFC):0x8140, (0xE040, 0xEBBF):0xC140}
         self._KANJI_MULTIPLIER = 0xC0
 
-    def numeric(self,s:str) -> tuple:
-        
-        a = s.replace(" ", "")
-        character_count = len(a)
-        s = s.split(" ")
+    def numeric(self, s: str) -> tuple:
+        s = s.replace(" ", "")  # remove all spaces
+        character_count = len(s)
 
         output = ""
-        for i in s:
-            i = int(i)
-            if len(str(i)) == 1:
-                i = format(i,"04b")
-                output+=" " + i
-            elif len(str(i)) == 2:
-                i = format(i,"06b")
-                output+=" " + i
+        i = 0
+        while i < len(s):
+            if i + 3 <= len(s):
+                group = s[i:i + 3]
+                output += format(int(group), "010b")
+                i += 3
+            elif i + 2 <= len(s):
+                group = s[i:i + 2]
+                output += format(int(group), "07b")
+                i += 2
             else:
-                i = format(i,"010b")
-                output+=" " + i
+                group = s[i]
+                output += format(int(group), "04b")
+                i += 1
 
-        return character_count,output.strip(), "numeric"
+        return character_count, output, "numeric"
 
     def alphanumeric(self, s: str) -> tuple:
-        # s = s.replace(" ", "")
-        # character_count = len(s)
-        #
-        # mode_indicator = "0010"
-        #
-        # character_count_indicator = format(character_count, '09b')
-        #
-        # results = []
-        # i = 0
-        # while i < len(s) - 1:
-        #     c1 = self._ALPHANUMERIC_TABLE[s[i]]
-        #     c2 = self._ALPHANUMERIC_TABLE[s[i + 1]]
-        #     val = 45 * c1 + c2
-        #     results.append(format(val, '011b'))
-        #     i += 2
-        #
-        # if i < len(s):
-        #     results.append(format(self._ALPHANUMERIC_TABLE[s[i]], '06b'))
-        #
-        # encoded_data = ''.join(results)
-        #
-        # final_output = mode_indicator + character_count_indicator + encoded_data
-        #
-        # return character_count, final_output, "alphanumeric"
         def encode_pair(pair):
             if len(pair) == 2:
                 val = 45 * self._ALPHANUMERIC_TABLE[pair[0]] + self._ALPHANUMERIC_TABLE[pair[1]]
@@ -86,14 +63,14 @@ class Encoder:
 
         return character_len,res, "alphanumeric"
 
-    def bytes(self,s:str) -> tuple:
-        hex_values = [format(int(format(ord(i),'02x'),16),"08b") for i in s.replace(" ", "")]
+    def bytes(self, s: str) -> tuple:
+        hex_values = [format(ord(i), "08b") for i in s]
         characters_count = len(hex_values)
 
         output = ""
         for value in hex_values:
-            output +=" " + value
-        return characters_count,output.strip(), "bytes"
+            output += " " + value
+        return characters_count, output.strip(), "bytes"
 
     def kanji(self,s:str) -> tuple:
         s = [i.encode("shift_jis").hex() for i in s.split(" ")]
