@@ -1,8 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from dataclasses import dataclass
 from pandas import read_csv
 from masking import Masking
+from matplotlib import use
+use('TkAgg')
+from PIL import Image
 
 @dataclass
 class LeftTopFinderPattern:
@@ -58,15 +62,13 @@ class QRCodeEncoder:
         self.error_correction_level = error_correction_level
         self.bits = bits
         self.size = 4 * version + 17
-        self.matrix = np.full((self.size, self.size), 0) 
+        self.matrix = np.full((self.size, self.size), 0)
         self.reserved = np.zeros((self.size, self.size), dtype=bool)
 
-        self.format_string_table = read_csv("format_string_table.csv")
-        self.version_string_table = read_csv("version_string_table.csv")
-        
+        self.format_string_table = read_csv("qr_format_strings_v1_to_v40.csv")
 
-
-    def place_finder_patterns(self, 
+        self.version_info=''
+    def place_finder_patterns(self,
                               left_top:LeftTopFinderPattern,
                               right_top:RightTopFinderPattern,
                               left_bottom:LeftBottomFinderPattern):
@@ -80,7 +82,7 @@ class QRCodeEncoder:
 
     def place_alignment_patterns(self, pattern: AlignmentPattern):
         if self.version < 2:
-            return  
+            return
 
         alignment_positions = self.get_alignment_positions()
         for r, c in alignment_positions:
@@ -100,9 +102,6 @@ class QRCodeEncoder:
             if not self.is_reserved(i, 6):
                 self.matrix[i, 6] = not (i % 2)
                 self.reserved[i, 6] = True
-
-
-
     def get_alignment_positions(self):
         alignment_centers = [
             [],  # Version 1 (no alignment pattern)
@@ -152,26 +151,25 @@ class QRCodeEncoder:
 
     def is_reserved(self, row, col):
         return self.reserved[row, col]
-    
+
     def place_dark_module(self):
-        row, col = 4 * self.version + 9, 8 
+        row, col = 4 * self.version + 9, 8
         self.matrix[row, col] = 1
         self.reserved[row, col] = True
 
     def toggle_reserve_format_area(self,bool_state:bool):
         for i in range(9):
-            if i != 6: 
+            if i != 6:
                 self.reserved[i, 8] = bool_state
                 self.reserved[8, i] = bool_state
-        
+
         for i in range(8):
             self.reserved[self.size - 1 - i, 8] = bool_state
             self.reserved[8, self.size - 1 - i] = bool_state
 
     def toggle_reserve_version_area(self, bool_state:bool):
-        if self.version>=7:
-            self.reserved[0:6, self.size - 11:self.size - 8] = bool_state
-            self.reserved[self.size - 11:self.size - 8, 0:6] = bool_state
+        self.reserved[0:6, self.size - 11:self.size - 8] = bool_state
+        self.reserved[self.size - 11:self.size - 8, 0:6] = bool_state
 
     def place_bits(self):
         row, col = self.size - 1, self.size - 1
@@ -180,7 +178,6 @@ class QRCodeEncoder:
         going_left = True
 
         while col >= 0 and bit_index < len(self.bits):
-
             if col == 6:
                 col -= 1
                 continue
@@ -215,10 +212,9 @@ class QRCodeEncoder:
         format_string = self.format_string_table[
             (self.format_string_table["Mask Pattern"] == mask_pattern) &
             (self.format_string_table["ECC Level"] == self.error_correction_level)
-            ]["Type Information Bits"].values[0]
+            ]["Format String"].values[0]
         format_string = str(format_string).zfill(15)
         bits = [int(b) for b in format_string]
-        print(bits)
         bit_index = 0
         for i in range(9):
             if i != 6:
@@ -249,7 +245,45 @@ class QRCodeEncoder:
                 self.reserved[8, self.size - 1 - i] = True
                 temp_index += 1
 
-    def visualize(self):
+    def place_version_string(self):
+        self.toggle_reserve_version_area(False)
+
+        G = 0b1111100100101
+
+        version_bits = self.version << 12
+
+        for i in range(17, 11, -1):
+            if (version_bits >> i) & 1:
+                version_bits ^= G << (i - 12)
+
+        remainder = version_bits & 0b111111111111
+
+        self.version_info = (self.version << 12) | remainder
+        print(self.version_info)
+
+        bit_index = 0
+        for col in range(6):
+            for row in range(3):
+                bit_value = (self.version_info >> bit_index) & 1
+                matrix_row = self.size - 11 + row
+                matrix_col = col
+
+                self.matrix[matrix_row, matrix_col] = bit_value
+                self.reserved[matrix_row, matrix_col] = True
+                bit_index += 1
+        bit_index = 0
+        for col in range(3):
+            for row in range(6):
+                bit_value = (self.version_info >> bit_index) & 1
+                matrix_row = row
+                matrix_col = self.size - 11 + col
+
+                self.matrix[matrix_row, matrix_col] = bit_value
+                self.reserved[matrix_row, matrix_col] = True
+                bit_index += 1
+
+
+    def visualize(self,color:str, style:str, image:bool):
         self.place_finder_patterns(LeftTopFinderPattern(),
                                    RightTopFinderPattern(),
                                    LeftBottomFinderPattern())
@@ -257,6 +291,7 @@ class QRCodeEncoder:
         self.place_timing_patterns()
         self.place_dark_module()
         self.toggle_reserve_format_area(True)
+
         if self.version >= 7:
             self.toggle_reserve_version_area(True)
         self.place_bits()
@@ -265,13 +300,59 @@ class QRCodeEncoder:
         masking.apply_mask(mask_pattern, self.matrix)
 
         self.place_format_string(mask_pattern)
-        
-        display_matrix = 1 - np.where(self.matrix == None, 0, self.matrix).astype(int)
 
-        plt.figure(figsize=(8, 8))
-        plt.imshow(display_matrix, cmap='gray', interpolation='nearest')
-        plt.xticks([])
-        plt.yticks([])
-        plt.show()
+        if self.version >= 7:
+            self.place_version_string()
 
+        cmap = mcolors.ListedColormap(['white',color])
+
+        display_matrix = np.where(self.matrix == None, 0, self.matrix).astype(int)
+
+        match style:
+            case "dots":
+                fig, ax = plt.subplots()
+                ax.set_aspect('equal')
+                ax.axis('off')
+
+                cell_size = 10
+                dot_radius = cell_size * 0.45
+                bg_radius = cell_size * 0.5
+
+                for y in range(self.size):
+                    for x in range(self.size):
+                        center_x = x * cell_size + cell_size / 2
+                        center_y = y * cell_size + cell_size / 2
+
+                        bg = plt.Circle((center_x, center_y), bg_radius, color='white', zorder=1)
+                        ax.add_artist(bg)
+
+                        if display_matrix[y][x]:
+                            fg = plt.Circle((center_x, center_y), dot_radius, color=color, zorder=2)
+                            ax.add_artist(fg)
+
+                ax.set_xlim(0, self.size * cell_size)
+                ax.set_ylim(self.size * cell_size, 0)
+                plt.show()
+
+            case "squares":
+                plt.figure(figsize=(8, 8))
+                plt.imshow(display_matrix, cmap=cmap, interpolation='nearest')
+                plt.xticks([])
+                plt.yticks([])
+                if not image:
+                    plt.show()
+                else:
+                    plt.savefig("qr.png",dpi=300, bbox_inches="tight")
+                    qr_img = Image.open("qr.png").convert("RGB")
+                    logo = Image.open("coca-cola.png")
+
+                    qr_width, qr_height = qr_img.size
+                    logo_size = int(qr_width * 0.25)
+                    logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+
+                    pos = ((qr_width - logo_size) // 2, (qr_height - logo_size) // 2)
+
+                    qr_img.paste(logo, pos, mask=logo if logo.mode == 'RGBA' else None)
+
+                    qr_img.show()
 
