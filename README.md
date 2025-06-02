@@ -11,9 +11,6 @@ qr_generator/
 │
 ├── src/
 │   └── app.py      # Main QR code generator script
-│
-├── icon.png        # (Optional) Icon for GUI or branding
-└── README.md
 ```
 
 ---
@@ -49,27 +46,10 @@ python app.py [flags]
 ## ✅ Example Usage
 
 ```bash
-python app.py --color "#1a73e8" --style dots --v 4 --image logo.png
+python app.py --color red --style dots --v 4 --image logo.png
 ```
 
 This will generate a blue QR code with dotted style, version 4, and embed `logo.png` in the center.
-
----
-
-## 🛠️ Requirements
-
-- Python 3.x
-- Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-Or manually:
-
-```bash
-pip install qrcode[pil] pillow
-```
 
 ---
 
@@ -85,13 +65,8 @@ pip install qrcode[pil] pillow
 
 ## 📌 TODO / Future Plans
 
-- Add GUI support (Tkinter or PyQt)
-- Add QR code history logging
-- Option to export as SVG
+- Add function to generate animated QR codes
+- Add function to hash QR
+- Option to export
 - Web interface with Flask or FastAPI
 
----
-
-## 📸 Preview
-
-*(Add a screenshot or sample QR code here if you want)*
