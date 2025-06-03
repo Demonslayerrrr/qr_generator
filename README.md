@@ -46,10 +46,10 @@ python app.py [flags]
 ## ✅ Example Usage
 
 ```bash
-python app.py --color red --style dots --v 4 --image logo.png
+python app.py --color red --style dots --v --image logo.png
 ```
 
-This will generate a blue QR code with dotted style, version 4, and embed `logo.png` in the center.
+This will generate a blue QR code with dotted style, verbose, and embed `logo.png` in the center.
 
 ---
 
